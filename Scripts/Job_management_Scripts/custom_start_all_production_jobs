@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# A script to start all production jobs in the MainJob_dir directory. 
+# (assumes the job to be pre-equilibrated with the job directories 
+# populated with the restart files!)  
+#--------------------------------------------------------------------
+source Scripts/common_functions.sh
+
+# Check for master_config_file:--------------------------------------
+read_master_config_file Setup_and_Config
+
+
+# Check for dir_list.txt:--------------------------------------------
+check_directory_list . 
+y=$(cat .dir_list.txt) 
+
+# make quick copy of showq for checking:-----------------------------
+make_temp_showq_list
+
+
+cd $JOB_DIR
+
+# launch jobs in MainJob_dir:----------------------------------------
+for i in $y
+do
+ cd $i
+
+# remove any pausejob:----------------------------------------------- 
+ if [ -f pausejob ]
+ then
+  rm pausejob
+ fi
+
+# check if job is already running:----------------------------------- 
+ if [ -f .current_job_id.txt ];
+  then
+   j=$(cat .current_job_id.txt | tail -n 1 )
+   e=$(cat ../../.temp_showq.txt  |grep $j | awk '{print $3 }') 
+ 
+   if [ "$e" == "RUNNING" ];
+    then
+     echo -e " $i - Appears a job is already running here!: $j" 
+    else
+     sbatch $sbatch_prod
+     echo -e " Launching production job in directory $DIR/$i \n "
+     echo -e "P:submitted">.job_status 
+    fi
+  else 
+     sbatch $sbatch_prod
+     echo -e " Launching production job in directory $DIR/$i \n "
+     echo -e "P submitted">.job_status
+ fi
+
+ cd ../
+ sleep 0.5
+
+done
+# cleanup:
+rm ../.temp_showq.txt
+
+exit
+
+

@@ -1,0 +1,5 @@
+## extrabonds file should contain lines of the following:
+## bond <atom> <atom> <k> <ref>
+## angle <atom> <atom> <atom> <k> <ref>
+## dihedral <atom> <atom> <atom> <atom> <k> <ref>
+## improper <atom> <atom> <atom> <atom> <k> <ref> 

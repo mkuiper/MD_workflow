@@ -1,0 +1,16 @@
+#! /bin/bash
+
+for (( i=0; i<$1; i++))
+do 
+
+f="protein_cluster_"$i".dcd"
+Scripts/catdcd -o $f temp_data_dir/temp_protein_cluster.$i.*
+rm temp_data_dir/temp_protein_cluster.$i.* 
+
+done 
+# cleanup:
+cp protein_cluster_*.dcd protein_cluster_data/
+rm protein_cluster_*.dcd 
+
+
+

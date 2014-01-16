@@ -1,0 +1,37 @@
+#!/bin/bash
+# pbs launching script          may 2013
+# 	
+#  This script is designed for the pre-processing of data at the completion of a run
+#  -often the amount of data that one is trying to process is far greater than possible on 
+#  a simple desktop.  This script will hopefully aggregate the data using an smp node plus 
+#  a large amount of memory.  A second script will strip out the waters and hydrogen to 
+#  greatly reduce the memory footprint for further processing.  
+
+#PBS -l procs=4 
+#PBS -l walltime=4:0:0
+#PBS -q batch
+
+# For most jobs this should be plenty, otherwise increase! (say, pvmem=128gb)
+#PBS -l pvmem=64gb
+
+cd $PBS_O_WORKDIR
+
+# To run on Merri
+module load vmd-gcc/1.9.1
+
+#First step:  Aggregate the data
+
+./a1_extract_all_my_data.sh
+
+# Second step: create no hydrogen no water dcd trajectory with vmd (text mode) 
+
+vmd -dispdev text -e a2_create_dcd_no_H_no_H2O.tcl
+
+# Optional steps: 
+
+vmd -dispdev text -e a3_protein_backbone_cluster_analysis.tcl
+vmd -dispdev text -e a4_ligand_cluster_analysis.tcl
+
+
+
+

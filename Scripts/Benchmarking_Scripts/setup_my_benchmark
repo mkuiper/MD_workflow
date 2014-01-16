@@ -1,0 +1,92 @@
+#!/bin/bash
+#                                                                 Mkuiper Jan 2013
+# This script sets up benchmarking jobs 
+# based on your input files. 
+#---------------------------------
+# check for master_config_file and source variables for both optimization and production scripts: 
+
+echo -e "\nBenchmarking  v 0.3 "
+echo -e "This script will read your input files from ../master_config_file and generate "
+echo -e "new configuration files for benchmarking your namd job on Avoca.  \n " 
+
+# -------------------------------------------------------------------------------------
+source ../../Scripts/common_functions.sh
+
+check_directory Benchmarking 
+
+read_master_config_file ../
+
+
+# -- update sbatch_optimize_benchmark
+cp sbatch_optimize_benchmark_template sbatch_optimize_benchmark
+
+sed -i  's/module load X/module load '"$modulefile"'/' sbatch_optimize_benchmark
+sed -i  's/#SBATCH --account=Change_me/#SBATCH --account='"$account"'/' sbatch_optimize_benchmark
+
+
+# copy a version of the optimization/production script:-------------------------------- 
+if [ -f ../$optimize_script ]
+then
+ cp ../$optimize_script bench_opt.conf
+ cp ../$production_script  benchmark.conf 
+
+else
+ echo -e " Can't find $optimize_script in /Setup_and_Config"
+ exit
+fi 
+
+# read variables from conf file:------------------------------------------------------- 
+cutoff=$( less bench_opt.conf |grep cutoff | awk '{print $2}' )
+switch=$( less bench_opt.conf |grep switchdist | awk '{print $2}' )
+pairli=$( less bench_opt.conf |grep pairlistdist | awk '{print $2}' )
+timest=$( less bench_opt.conf |grep timestep |tail -n 1 | awk '{print $2}' ) 
+nbfreq=$( less bench_opt.conf |grep nonbondedFreq | awk '{print $2}' ) 
+fEfreq=$( less bench_opt.conf |grep fullElectFrequency | awk '{print $2}' ) 
+stepcy=$( less bench_opt.conf |grep stepspercycle | awk '{print $2}' ) 
+
+# combine cutoff list:  
+opt_cutoff=$( echo "$cutoff\t$switch\t$pairli" ) 
+opt_timest=$( echo "$timest\t$nbfreq\t$fEfreq\t$stepcy " ) 
+
+
+# combine cutoff list:  
+bench_cutoff=$( echo "$cutoff\t$switch\t$pairli" ) 
+bench_timest=$( echo "$timest\t$nbfreq\t$fEfreq\t$stepcy " ) 
+
+# modify bench_opt.conf for a shorter run: 
+sed -i 's/outputName.*/outputName        benchmarking_opt/' bench_opt.conf 
+sed -i 's/restartfreq.*/restartfreq       1000/' bench_opt.conf 
+sed -i 's/dcdfreq.*/dcdfreq            500/' bench_opt.conf 
+sed -i 's/xstFreq.*/xstFreq            500/' bench_opt.conf 
+sed -i 's/outputEnergies.*/outputEnergies     500/' bench_opt.conf 
+sed -i 's/outputPressure.*/outputPressure     500/' bench_opt.conf 
+sed -i 's/outputTiming.*/outputTiming       500/' bench_opt.conf 
+
+sed -i 's/minimize.*/minimize          2000/' bench_opt.conf 
+sed -i 's/run.*/run                8000/' bench_opt.conf 
+
+# modify benchmark.conf for a shorter run and smaller output: 
+sed -i 's/set NumberSteps.*/set NumberSteps      10000/' benchmark.conf 
+sed -i 's/set inputname.*/set inputname      benchmarking_opt/' benchmark.conf 
+sed -i 's/outputName.*/outputName        benchmark_run/' benchmark.conf 
+sed -i 's/restartfreq.*/restartfreq    10000/' benchmark.conf 
+sed -i 's/dcdfreq.*/dcdfreq            10000/' benchmark.conf 
+sed -i 's/xstFreq.*/xstFreq            10000/' benchmark.conf 
+sed -i 's/outputEnergies.*/outputEnergies     10000/' benchmark.conf 
+sed -i 's/outputPressure.*/outputPressure     10000/' benchmark.conf 
+sed -i 's/outputTiming.*/outputTiming       2000/' benchmark.conf 
+
+echo -e "Created  config files: bench_opt.conf and benchmark.conf - ready to run benchmarks." 
+
+# psf_file=$( less ../$optimize_script |grep structure   | awk '{print $2}' )
+# natoms=$( less $psf_file | grep ATOM |awk '{print $1}')
+
+echo -e "Make sure to submit: \n"
+echo -e "sbatch sbatch_optimize_benchmark \n"
+echo -e "To prepare the input files for benchmarking. "
+
+echo -e "After this job finishes start:       ./run_my_benchmarks "
+echo -e "Benchmark results will end up in the file:  summary_benchmarks.txt \n"
+
+
+

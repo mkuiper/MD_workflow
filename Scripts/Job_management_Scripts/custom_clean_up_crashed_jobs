@@ -1,0 +1,184 @@
+#!/bin/bash
+#                                                                            mk   Jan 2013 
+#  Script to help clean up production jobs in the MainJob_dir directory that may have crashed  
+#  Use with caution! 
+#-------------------------------------------------------------------------------------------------
+source Scripts/common_functions.sh
+
+# source master_config_file 
+read_master_config_file Setup_and_Config
+
+# Check for existing directory list: ------------------------------------------------------------- 
+check_directory_list .
+y=$(cat .dir_list.txt) 
+
+#-------------------------------------------------------------------------------------------------
+echo -e "\n\n This script is to designed to help clean up a job crash where data is corrupted." 
+echo -e " The script will descend into each job directory and list the contents of the " 
+echo -e " /OutputFiles  directory. Usually these files should be the same size and have unique   " 
+echo -e " MD5SUM identifier. Corrupted files are usually smaller or zero in size.  Identical "
+echo -e " file will have identical MD5SUM values. Corrupted files are usually smaller or zero "
+echo -e " in size compared to the other dcd files.  "
+echo -e " By entering the name of the last good file this script will scrub all subsequent" 
+echo -e " files and restore the countdown and restart files.  \n\n" 
+echo -e " This will move bad files to /Error with a suffix .bad \n" 
+echo -e " You can remove them from there manually.  \n" 
+echo -e "                   USE WITH CAUTION !!!!" 
+echo -e "      Make sure to stop all your jobs first! \n\n"
+#-------------------------------------------------------------------------------------------------
+# make quick copy of showq for job checking:-----------------------------
+make_temp_showq_list
+
+cd $JOB_DIR
+
+for i in $y
+do
+ clear
+# -- change to job directories: 
+ cd $i/OutputFiles
+ echo  > temp_scrub_dcd_list 
+ echo -e "\nDirectory:  $i "  
+ echo -e "MD5SUM: "  
+ md5sum *.dcd 
+ echo -e "\nDcd files  directory list:"  
+ ls -lrt *.dcd 
+ echo -e " Enter last good file job name to scrub from: ( press enter to skip, q to quit) \n " 
+ read target
+
+if [ "$target" == "" ];  then 
+ echo -e " \n skipping $i " 
+ cd ../../
+ continue
+fi
+
+if [ "$target" == "q" ];  then 
+ echo -e " \n quitting " 
+ exit
+fi
+
+# -- check if file exists:------------------------------------------------------------- 
+if [ -f $target ]; then 
+ echo -e " using:  $target \n " 
+else 
+ echo " No such file" 
+ cd ../../
+ continue
+fi 
+
+# -- check if job still running:------------------------------------------------------
+if [ -f .current_job_id.txt ];
+then
+  j=$(cat .current_job_id.txt | tail -n 1 )
+  e=$(cat ../../.temp_showq.txt  |grep $j | awk '{print $3 }') 
+ if [ "$e" == "RUNNING" ];
+ then
+  echo -e " $i - Appears a job is still running here!: $j" 
+  echo -e " You should really stop all jobs first! Exiting. " 
+  exit
+ fi 
+fi
+# -- strip out base name and last good countdown number:------------------------------  
+
+basename=$( echo $target | awk -F\. '{print $1 "." $2 "." $3  }') 
+lastgood=$( echo $target | awk -F\. '{print $4-1}' ) 
+
+echo -e "target  : $target \n" 
+echo -e "basename: $basename   reset countdown: $lastgood \n" 
+
+# -- find newer files:---------------------------------------------------------------- 
+find . -type f -newer $target | grep -v dcd_ | sed -e 's/.\///' >> temp_scrub_dcd_list 
+echo -e " Files to scrub: \n" 
+find . -type f -newer $target | grep -v dcd_  
+
+echo -e "\n Continue? enter "y" to proceed. \n "
+read scrub
+
+if [ "$scrub" != "y" ];  then 
+ echo -e " \n Skipping $i " 
+ cd ../../
+ continue
+fi
+
+# -- clean up mess! ------------------------------------------------------------------
+scr=$(cat temp_scrub_dcd_list) 
+
+# -- reset countdown: ---------------------------------------------------------------- 
+echo $lastgood > ../.countdown.txt  
+
+## -- move out bad files:------------------------------------------------------------- 
+for q in $scr
+do 
+ joblogbase=$( echo $q | awk -F\. '{print $1 "." $2 $3  }')
+ pp=$(echo $q  | sed s/dcd/out/) 
+ rr=$(echo $q  | sed s/dcd/txt/) 
+
+# -- create filenames from $q 
+ rs1=$(echo $q | sed s/dcd/coor/)    > temp_bad_list
+ rs2=$(echo $q | sed s/dcd/vel/)    >> temp_bad_list
+ rs3=$(echo $q | sed s/dcd/xsc/)    >> temp_bad_list 
+ rs4=$(echo $q | sed s/dcd/xst/)    >> temp_bad_list
+ rs5=$(echo $q | sed s/dcd/colvars.state/) >> temp_bad_list
+ rs6=$(echo $q | sed s/dcd/colvars.traj/)  >> temp_bad_list
+
+# move bad dcd files:
+ mv $q ../Errors/$q.bad 
+
+# -- move bad output files: 
+ mv ../OutputText/$pp       ../Errors/$pp.bad 
+ mv ../JobLog/$rr*     ../Errors/
+
+# -- move bad restart files:
+bl=$(cat temp_bad_list);
+for b in $bl; 
+do 
+ if [ -f ../RestartFiles/$b ]; 
+ then 
+   mv  ../RestartFiles/$b  ../Errors/$b.bad
+ fi
+done
+ rm temp_bad_list
+ 
+done
+
+# -- recreate dcd file list:-------------------------------------- 
+ls *.dcd > dcd_list.txt
+
+# -- remove core dump files:-------------------------------------- 
+if [ -f ../core.* ]; then
+ rm ../core.*
+fi 
+
+# -- remove last bad restartfiles:--------------------------------
+echo -e " removing last generic files \n" 
+cd ../
+ls generic_restartfile.* > temp_grsf_list
+rsf=$(cat temp_grsf_list)
+for r in $rsf; 
+do 
+ if [ -f $r ]; 
+ then 
+  rm $r
+ fi 
+done
+rm temp_grsf_list
+ 
+# -- re-seed restart files from last good target:------------------
+ ts1=$(echo $target | sed s/dcd/coor/) 
+ ts2=$(echo $target | sed s/dcd/vel/) 
+ ts3=$(echo $target | sed s/dcd/xsc/) 
+
+echo -e " repopulating restartfiles from last good point: \n" 
+ cp RestartFiles/$ts1  generic_restartfile.coor
+ cp RestartFiles/$ts2  generic_restartfile.vel
+ cp RestartFiles/$ts3  generic_restartfile.xsc
+echo -e " \n" 
+
+sleep 1
+cd ../
+done
+
+rm ../.temp_showq.txt
+echo -e "\n  Finished cleanup.  All bad files moved to respective /Errors/*.bad  \n" 
+
+
+

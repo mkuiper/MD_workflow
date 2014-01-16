@@ -1,0 +1,127 @@
+#!/bin/bash
+##  sbatch launching script                          Jan  2013  MKuiper
+## -A generic script to launch an optimization/equilibration script before
+## launching a series of production jobs on the Avoca bluegene cluster at vlsci. 
+
+#--------------------------------------------------------------- 
+#                                                              #
+#         Make all changes in "master_config_file"             #
+#                                                              #
+#     -you shouldn't have to change anything in here!          #
+#---------------------------------------------------------------
+#-- Sbatch parameters:------------------------------------------
+#-- the X values will be substituted with a values from the master_config_file 
+#-- use "./populate_config_files" to populate job directories with input files.   
+
+#SBATCH --nodes=X
+#SBATCH --time=X
+#SBATCH --account=X
+
+#ntpn=X         # number of tasks per node: 
+#ppn=X         # processors per node:       <- not needed for pami version. 
+module load X  # module file:
+
+#--------------------------------------------------------------------------------
+# -- Read variables from master_config_file:
+if [ -f master_config_file ] 
+ then 
+ . master_config_file
+else 
+ echo -e " Doesn't appear to be a master_config_file in this directory! Exiting."  
+ echo -e "O:NoMasterConfig!" >.job_status
+ exit
+fi
+# -- for later slurm file clean up: 
+ls pbs-* > .old_pbs_file
+
+#  -- check disk quota before starting job! : stop job if too close: ---------------------------------  
+diskspace=$( mydisk | grep $account | awk '{print $5}' | sed s/\%// )  
+if [ "$diskspace" -gt $diskspacecutoff ]; then 
+ echo -e " Warning: diskspace for this account is low! Check disk quotas  (mydisk)  " 
+ echo -e " Clean up your files! Exiting. " 
+ echo -e "O:DiskQuotaFull" >.job_status
+ touch pausejob
+ exit 
+fi 
+
+# -- set up counters for number of repeat jobs, log details: ---------------------------------------- 
+jobname=$jobname_opt
+echo $runs > .total_runs.txt
+echo $runs > .countdown.txt
+echo $PBS_JOBID >.current_job_id.txt
+qstat -f  $PBS_JOBID >>JobLog/$date2$jobname.optimization.txt;  # log job details
+
+# -- job fail safe check timestamp: - (to stop job if it completes in less than a specified time: --
+jfc1=$(date +%s);                   # jobfailcheck time stamp1
+date=$(date +%F);                   # date stamps
+date2=$(date +%F-%H.%M);            # date stamps
+basename="$date2.$jobname_opt";      # create timestamped basename for optimization
+
+
+# -- launching job for avoca: -----------------------------------------------------------------------
+echo -e "O:Running" >.job_status
+
+mpirun namd2  $optimize_script >OutputText/$basename.opt 2>Errors/$basename.err;
+
+#srun  --ntasks-per-node $ntpn  namd2 +ppn $ppn $optimize_script >OutputText/$basename.out 2>Errors/$basename.err;
+#srun  --ntasks-per-node $ntpn  namd2 $optimize_script >OutputText/$basename.out 2>Errors/$basename.err;
+
+echo -e "O:CleaningUp" >.job_status
+
+### -- after the job has finished: ------------------------------------------------------------------ 
+jfc2=$(date +%s);                                                   # jobfailcheck time stamp2
+let runtime=$jfc2-$jfc1;                                             # job run time.               
+jobhours=$(echo $runtime | awk '{printf "%.3f hours", $1/3600}');  
+timing=$(../../Scripts/Tools/timing_data_miner OutputText/$basename.out); # mine timing data
+echo $basename  $jobhours $timing  >>JobLog/timing_data_log.txt;    # log timing data
+j=$(cat .jobdir_id );
+c=$(cat .current_job_id.txt); 
+
+### -- job fail check: kill job if runtime less than $jobfailtime:-----------------------------------
+if [ $runtime -lt $jobfailtime ]; then
+ echo -e " $j $c failed optimization. Job finished early." >> ../../JobLog/Failed_job_list.txt; # log job failure
+ echo -e "O:JobFinishedEarly:Crash?" >.job_status
+ touch pausejob;                 # create pause flag 
+ exit
+fi
+
+### -- rename output and move data into respective folders: ----------------------------------------- 
+# - (optimization dcd output suffixed with a ".x" so not to be included with production output) 
+for f in generic_optimization*
+do
+ case $f in 
+  *.coor)  cp $f RestartFiles/opt.$basename.coor; mv $f generic_restartfile.coor;;
+  *.vel)   cp $f RestartFiles/opt.$basename.vel;  mv $f generic_restartfile.vel;;
+  *.xsc)   cp $f RestartFiles/opt.$basename.xsc;  mv $f generic_restartfile.xsc;;
+  *.colvars.state) mv $f RestartFiles/opt.$basename.colvars.state;;
+  *.colvars.traj)  mv $f RestartFiles/opt.$basename.colvars.traj;;
+  *.dcd)            mv $f OutputFiles/opt.$basename.dcd.x;;  
+ esac 
+done
+
+## -- clean up, check for core dump files:----------------------------------------------------------- 
+rm generic_optimization.*.BAK
+if [ -f core.* ] 
+ then
+ echo -e " $j $c core files generated. something wrong?  Moved core files to /Errors " >> ../../JobLog/Failed_job_list.txt; # log job failure
+ echo -e "O:CoreDumpsPresent" >.job_status
+ touch pausejob;                 # create pause flag 
+ mv core.*   Errors/
+fi
+
+## --- log job finish:------------------------------------------------------------------------------
+ echo "$j $c optimisation finished at $date2 " >> ../../JobLog/Finished_job_list.txt 
+
+## -- check for pause flag:-------------------------------------------------------------------------
+if [ -f pausejob ]; then 
+ echo -e "$j $c Pausejob flag present. Check job output. Stopping. "
+ echo -e "O:Paused" >.job_status 
+ exit 
+fi 
+## -- launch production job:------------------------------------------------------------------------   
+
+echo -e "O:SubmittedProduction" >.job_status 
+qsub $pbs_prod
+
+## -------------------------------------------------------------------------------------------------
+

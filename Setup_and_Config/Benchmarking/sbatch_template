@@ -1,0 +1,60 @@
+#!/bin/bash
+## sbatch template for benchmarking                   June   2012     MKuiper
+
+#---------------------------------------------------------------------------------
+#-- Sbatch parameters:------------------------------------------------------------
+#SBATCH --nodes=X 
+#SBATCH --time=2:0:0
+#SBATCH --account=X
+
+#load module file:
+module load X
+
+#---------------------------------------------------------------------------------
+# ---      You shouldn't have to change anything below this line!              ---
+#---------------------------------------------------------------------------------
+# - Read variables from master_config_file:
+#   check and source master_config_file
+
+if [ -f ../master_config_file ]
+then
+. ../master_config_file      # don't need this for now. 
+else
+ echo -e " Doesn't appear to be a master_config_file in this directory!" 
+ exit
+fi
+
+nodes=X     ;# number of nodes
+ntpn=X      ;# number of tasks per node: 
+ppn=X       ;# processors per node:  - only valid for smp version 
+jobname=X   
+
+### - date stamps:-------------------------------------------------------------------
+date=$(date +%F);
+date2=$(date +%F-%H.%M);
+
+### - write to the job_log:---------------------------------------------------------- 
+scontrol show job $SLURM_JOBID >>JobLog/$date2$jobname_prod.qstat.txt;
+echo $SLURM_JOBID >>JobLog/current_job_id.txt
+
+### - run production job segment:----------------------------------------------------
+basename="$date2.$jobname" 
+
+# for avoca
+# smp version:
+ srun  --ntasks-per-node=$ntpn  namd2 +ppn $ppn benchmark.conf >OutputText/$basename.out 2>Errors/$basename.err;
+# pami version:
+#srun  --ntasks-per-node=$ntpn  namd2 benchmark.conf >OutputText/$basename.out 2>Errors/$basename.err;
+
+###  - clean up files:---------------------------------------------------------------
+# - mine timing / seed data: 
+
+timing=$(../../Scripts/Tools/timing_data_miner OutputText/$basename.out);
+
+echo -e "$nodes\t$ntpn\t$ppn\t$timing" >> summary_benchmarks.txt
+
+#cleanup:
+rm *.old
+
+
+

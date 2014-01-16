@@ -1,0 +1,43 @@
+
+colvarsTrajFrequency 50000
+#colvar {
+#   name dist_to_cent
+#   distance {
+#      group1 {
+#         psfSegID   A
+#         atomNameResidueRange CA 5-140
+#      }
+#      group2 {
+#         dummyAtom (0.0, 0.0, 0.0)
+#      }
+#      oneSiteSystemForce yes
+#   }
+#}
+
+colvar {
+    name orienta
+    orientation {
+	atoms {
+	    atomsFile ../../InputFiles/calmodulin.pdb
+	    atomsCol B
+	    atomsColValue 1.0
+	}
+	refPositionsFile ../../InputFiles/calmodulin.pdb
+	refPositionsCol B
+	refPositionsColValue 1.0
+    }
+}
+
+# harmonic {
+#   name center
+#   colvars dist_to_cent
+#   centers 0.0
+#   forceConstant 1.0
+# } 
+
+harmonic {
+    name orientationa
+    colvars orienta
+    centers (1.0, 0.0, 0.0, 0.0)
+    forceConstant 1.0
+}

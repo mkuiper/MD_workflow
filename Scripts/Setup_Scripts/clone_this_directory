@@ -1,0 +1,25 @@
+#!/bin/bash
+#                                                             Mkuiper May 2013
+# Simple script to clone this directory without data. 
+
+# Check for existence of cloned directory 
+
+if [ -d ../../temporary_cloned_md_workflow ];
+ then
+   echo -e "\n Cloned directory already exists! Make sure to rename this first before cloning another! \n" 
+   exit 
+else 
+ echo -e "\n Creating cloned directory: temporary_cloned_md_workflow" 
+ mkdir ../../temporary_cloned_md_workflow
+fi
+
+echo -e "\n Cloning directory without (most!) data. " 
+
+rsync -azt --exclude='*.dcd *.BAK *.tga *.jpg *.dat *.gitkeep MainJob_dir/* Analysis/Data/* Analysis/ligand_cluster_data/* Analysis/protein_cluster_data/* Analysis/temp_data_dir/* ' ../* ../../temporary_cloned_md_workflow
+
+echo -e " Cloned a copy of this directory (without output data) to:  ../../temporary_cloned_md_wokflow " 
+echo -e "\n Make sure to rename this directory!" 
+
+exit 
+
+

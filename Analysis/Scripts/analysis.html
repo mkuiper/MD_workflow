@@ -1,0 +1,72 @@
+<h1>Overview of the routines in analysis.tcl</h1>
+
+<p><code>analysis.tcl</code> contains a few routines that are useful in analysing
+and manipulating trajectories and structures within VMD. To
+automatically load it into VMD at the start of every session add the
+text</p>
+
+<p><code>source &lt;path to analysis.tcl&gt;</code> </p>
+
+<p>to the start of your <code>.vmdrc</code> file.</p>
+
+<hr />
+
+<ul>
+<li><code>reduced &lt;sel&gt; &lt;prefix&gt;</code> <br><br> Creates a text file of atom
+indices and a psf topology file based on the atomselection
+<code>sel</code>. The files are named <code>prefix.text</code> and <code>prefix.psf</code>. A dcd
+file that contains only the atoms of interest can be created with:
+<br><br><code>catdcd -i prefix.text -o output.dcd *.dcd</code> <br><br></li>
+<li><code>get_charge &lt;sel&gt;</code> <br><br> Returns the total charge of the atomselection
+<code>sel</code>.<br><br></li>
+<li><code>fitframes &lt;molid&gt; &lt;seltext&gt;</code> <br><br> Takes the trajectory in
+molecule <code>molid</code> and aligns all the atoms in the system based on the
+first frame of the selection in <code>&lt;seltext&gt;</code>. Example usage:
+<br><br><code>fitframes top "protein and resid 1 to 90"</code> <br><br> or
+<br><br> <code>fitframes top nucleic</code>.<br><br></li>
+<li><code>fitagainst &lt;molid0&gt; &lt;molid1&gt; &lt;seltext&gt;</code> <br><br> Similar to
+<code>fitframes</code> but fits the system in <code>molid1</code> against the first frame
+of <code>molid0</code> based on the selection <code>seltext</code>. <code>molid1</code> and <code>molid0</code>
+need not have the same number of atoms as long as <code>seltext</code> has the
+same number of atoms for both.<br><br></li>
+<li><code>mark_beta &lt;molid&gt; &lt;seltext&gt;</code> <br><br> Sets the beta value of the
+atoms in <code>seltext</code> to be 1 and the value for <em>all</em> other atoms in
+the system to 0. This can be used to mark a subset of atoms to be
+constrained during equilibration. For example: <br><br> <code>mol load
+psf protein.psf pdb protein.pdb</code> <br> <code>mark_beta top "protein and
+backbone"</code> <br> <code>[atomselect top all] writepdb protein.pdb</code> <br><br>
+can be used to select only the protein backbone atoms for
+constraint. <br><br></li>
+<li><code>rmsfscan &lt;sel&gt; &lt;fname&gt;</code> <br><br> Measures the RMSF of the atoms in
+the atomselection <code>sel</code> and saves to a file <code>fname.dat</code>.<br><br></li>
+<li><code>split_chain_fragments &lt;molid&gt;</code> <br><br> Takes the molecule <code>molid</code>
+and writes separate pdb files for each fragment each named
+<code>chain</code><em>i</em><code>_fragment</code><em>j</em><code>.pdb</code> where <em>i</em> is the chain id and <em>j</em> is
+the fragment index. The routine is useful for splitting a multichain
+protein up for use in psfgen, but the output should be treated with
+care.<br><br></li>
+<li><code>apply_beta_from_file &lt;fname&gt; &lt;molid&gt;</code> <br><br> Reads in data from
+the file <code>fname</code> and sets the beta value of each residue in molecule
+<code>molid</code>. The first column of <code>fname</code> should contain the resid and
+the second the beta value.<br><br></li>
+<li><code>switch_on_tube_scaling</code> <br><br> changes the behavior of the <code>tube</code>
+rendering mode so that the thickness of the tube corresponds to the
+beta value of the residue.<br><br></li>
+<li><code>rgyrscan &lt;sel&gt; &lt;fname&gt;</code> <br><br> Calculates the radius of gyration
+of the atomselection <code>sel</code> for each frame of the trajectory and
+saves to the file <code>fname</code>. <br><br></li>
+<li><code>mbondscan &lt;sel0&gt; &lt;sel1&gt; &lt;fname&gt;</code> <br><br> Calculates the distance
+between the two input atomselections for each frame and saves to
+<code>fname</code>. <br><br></li>
+<li><code>anglescan &lt;sel0&gt; &lt;sel1&gt; &lt;sel2&gt; &lt;fname&gt;</code> <br><br> Calculates the
+angle between the three input atomselections for each frame and
+saves to <code>fname</code>. <br><br></li>
+<li><code>dihedralscan &lt;sel0&gt; &lt;sel1&gt; &lt;sel2&gt; &lt;sel3&gt; &lt;fname&gt;</code> <br><br>
+Calculates the dihedral angle between the four atomselections for
+each frame and saves to <code>fname</code>. <br><br></li>
+<li><code>inertiascan &lt;sel0&gt; &lt;sel1&gt; &lt;fname_dist&gt; &lt;fname_angle&gt;</code> <br><br> For
+each frame of the trajectory, the moment of inertia of the two input
+atomselections is calculated. The distance between the centers of
+mass is written to <code>fname_dist</code> and the angle between the principal
+moments of inertia is written to <code>fname_angle</code>. <br><br></li>
+</ul>

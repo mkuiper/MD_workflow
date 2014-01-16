@@ -1,0 +1,29 @@
+#! /bin/bash
+
+# This script is used to generate a conveinient setup vmd script that can convieniently load in all 
+# production dcd files as specified in /DIR/OutputFiles/dcd_cat_file.txt 
+
+
+# Assuming running under MainJob_dir/SIM
+# take the basename to be job_id
+
+if [ -f job_id ]
+ then
+sim_number =$( cat $job_id.dcd_setup.vmd) 
+
+# create  dcd list for vmd setup file: 
+echo "mol new InputFiles/sbw_ice_ions.psf type psf first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all" >temp.txt
+
+for dcdline in $(cat OutputFiles/dcd_cat_file.txt);
+do 
+ printf "mol addfile OutputFiles/%s type dcd first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all\n" $dcdline>>temp.txt
+done 
+
+
+ else
+
+echo " Doesn't appear to be a job_id reference in this directory! " 
+
+ fi
+
+

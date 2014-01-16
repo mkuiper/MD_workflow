@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# A script to restart a new round of production jobs in the MainJob_dir directory. 
+#  
+#      ### INCOMPLETE ###
+
+#--------------------------------------------------------------------
+
+# Check for master_config_file:--------------------------------------
+
+if [ -f Setup_and_Config/master_config_file ];
+
+ then
+  . Setup_and_Config/master_config_file
+else 
+ echo -e " No master_config_file in /Setup_and_Config/ " 
+ exit 
+fi 
+
+# Check for existing directories: 
+if [ "$(ls -A $DIR)" ]; then
+
+# Check for dir_list.txt:--------------------------------------------
+if [ -f .dir_list.txt ];then
+
+y=$(cat .dir_list.txt) 
+else 
+ echo -e " No .dir_list.txt / " 
+ echo -e " try: 'ls ../MainJob_dir/ > .' " 
+ exit 
+fi 
+
+# make quick copy of showq for checking:-----------------------------
+me=$( whoami ) 
+showq -u "$me" > .temp_showq.txt
+
+cd $DIR
+
+# launch jobs in MainJob_dir:----------------------------------------
+for i in $y
+do
+ cd $i
+
+# remove any pausejob:----------------------------------------------- 
+ if [ -f pausejob ]
+ then
+  rm pausejob
+ fi
+
+# check if job is already running:----------------------------------- 
+ if [ -f .current_job_id.txt ];
+  then
+   j=$(cat .current_job_id.txt | tail -n 1 )
+   e=$(cat ../../.temp_showq.txt  |grep $j | awk '{print $3 }') 
+ 
+   if [ "$e" == "RUNNING" ];
+    then
+     echo -e " $i - Appears a job is already running here!: $j" 
+    else
+# check to see .countdown.txt is actually 0 
+
+# - 
+
+     sbatch $sbatch_prod
+     echo -e " Launching production job in directory $DIR/$i \n "
+     echo -e "P:submitted">.job_status 
+    fi
+  else 
+     sbatch $sbatch_prod
+     echo -e " Launching production job in directory $DIR/$i \n "
+     echo -e "P submitted">.job_status
+ fi
+
+ cd ../
+ sleep 0.5
+
+done
+# cleanup:
+rm ../.temp_showq.txt
+
+
+else
+ echo -e  "\n There are no job directories set up to start!" 
+ echo -e  "\n Go to /Setup_and_Config to create new job directories."
+fi
+
+

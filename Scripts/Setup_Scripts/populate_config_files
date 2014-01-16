@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# - Script to populate configuration files in job directories.   Jan 2014
+#
+# This script is used to populate the job directories in /MainJob_dir 
+# with input files.  It substitutes the variables in "master_config_file"
+# into sbatch and configuration scripts before copying them to the 
+# directories
+# -------------------------------------------------------------------------
+# source common functions:
+source ../Scripts/common_functions.sh
+
+# -- check for master_config_file:  source variables 
+read_master_config_file .
+
+# -- check if running in the /Setup_and_Config directory: 
+check_directory Setup_and_Config
+
+# check for the job directory listing:
+check_directory_list ../
+
+#-- create temporary sbatch files and make changes based on "master_config_file"
+create_sbatch_files
+
+#-- copy across new sbatch and configurations:
+populate_job_directories
+
+#-- clean up temporary sbatch files
+cleanup_sbatch_files
+
+exit

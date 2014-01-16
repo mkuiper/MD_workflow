@@ -1,0 +1,28 @@
+
+Job notes:                                 Date:
+
+Aim of simulation:
+
+
+
+People involved: 
+Contact details:
+
+
+
+Methodology:
+
+Equilibrium phase:  
+ NVT/ NPT/ NPE ?
+ Simulation time: 
+
+Parameters:
+
+
+
+Production phase: 
+ 
+
+
+
+

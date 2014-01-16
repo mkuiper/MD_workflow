@@ -1,0 +1,47 @@
+#! /bin/bash
+
+# This script is used to generate a setup vmd script that can convieniently load in all 
+# production dcd files into VMD as specified in dcd_list.txt file
+# use in con
+
+
+
+# To use one would first load the psf and pdb file into vmd before using:
+# "Load Visualization State" 
+# or use the -e option. 
+# For example:
+# vmd InputFiles/structure.psf InputFiles/structure.pdb -e OutputFiles/combined_dcd_file_loader.vmd 
+
+# Can edit the following variables to select the input frames:
+
+first_frame=0
+last_frame=-1
+step_size=1
+
+ 
+# Assuming script runs in /MainJob_dir/Jobxxx
+# grab local directory name:
+
+cdir=`pwd`
+jobdir=`basename $cdir`
+cd OutputFiles
+
+# - create dcd list from exisiting dcd files
+ls *.dcd > dcd_list.txt
+
+basename=combined_dcd_file_loader
+
+# create local dcd list for vmd setup file: 
+echo "" >$basename.vmd
+
+
+for dcdline in $(cat dcd_list.txt);
+do 
+ printf "mol addfile ../MainJob_dir/%s/OutputFiles/%s type dcd first %s last %s step %s filebonds 1 autobonds 1 waitfor all\n" $jobdir $dcdline $first_frame $last_frame  $step_size >>$basename.vmd
+done 
+
+cp $basename.vmd  ../../../Analysis/
+cd ../
+
+
+

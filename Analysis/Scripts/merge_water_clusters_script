@@ -1,0 +1,13 @@
+#! /bin/bash
+
+for (( i=0; i<$1; i++))
+do 
+
+f="water_cluster_data/water_cluster_"$i".dcd"
+Scripts/catdcd -o $f water_cluster_data/temp_water_cluster.$i.*
+rm water_cluster_data/temp_water_cluster.$i.* 
+
+done 
+
+
+

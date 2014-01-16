@@ -1,0 +1,124 @@
+#!/bin/bash
+#					          Jan 2013 MKuiper
+# Script to monitor all jobs running in the MainJob_dir directory. 
+#  
+
+# source common script functions:
+source Scripts/common_functions.sh
+
+# Check for master_config_file:--------------------------------------
+read_master_config_file  Setup_and_Config
+
+# Check for dir_list.txt:--------------------------------------------
+check_directory_list . 
+y=$(cat .dir_list.txt) 
+
+# Check for existing directories:------------------------------------ 
+if [ "$(ls -A $JOB_DIR)" ]; 
+then
+ date=$(date +%F-%H.%M);
+ echo -e "\n Monitoring Jobs status of all sims running in $JOB_DIR:  running on AVOCA " 
+ echo -e "\n Monitoring Jobs status of all sims running in $JOB_DIR:  running on AVOCA " > .temp_job_monitor.txt
+ echo -e " Date: $date "
+ echo -e " Date: $date " >> .temp_job_monitor.txt
+ 
+echo -e "\n DirJobName:    \tCount \tJobId \tCores \tStatus \t Walltime   Account   Job_status "
+echo -e "-----------------------------------------------------------------------------------------------" 
+echo -e "\n DirJobName:    \tCount \tJobId \tCores \tStatus \t Walltime   Account   Job_status " >> .temp_job_monitor.txt
+echo -e "-----------------------------------------------------------------------------------------------" >> .temp_job_monitor.txt
+
+# generate a temporary showq file:
+me=$( whoami ) 
+showq -u "$me" > .temp_showq.txt
+
+cd $JOB_DIR
+
+for i in $y
+# --find jobID in MainJob_dir/JobLog/current_job_id.txt
+do
+ cd $i
+ js="*"
+ if [ -f .job_status ]; then
+  js=$(cat .job_status );        # read script job status
+ fi 
+ t=0
+ c=0
+
+# -- read total runs and current count value
+ if [ -f .countdown.txt ]; 
+  then 
+   c=$(cat .countdown.txt );
+ fi
+ t=$runs
+
+ cc=$c"/"$t;                   # -- measure of how far the runs have progressed
+
+
+# -- check to see if job is runnning: -----------------------------------------------------------
+if [ -f .current_job_id.txt ];
+ then
+  j=$(cat .current_job_id.txt | tail -n 1 )
+
+# -- extract jobid, cores, status, walltime, estimated start time:-------------------------------
+ m=$(cat ../../.temp_showq.txt  |grep $j | awk '{print $1, $4, $3, $5 }') 
+ e=$(cat ../../.temp_showq.txt  |grep $j | awk '{print $3 }') 
+ q=$(cat ../../.temp_showq.txt  |grep $j | awk '{print $6 }')
+ 
+# -- check if job is running:
+ if [ "$e" == "RUNNING" ];
+ then
+  n=$(scontrol show job $j |grep Account |sed s/Account=// |awk '{print $2}')
+  cc=$c"/"$t
+  printf "%-20s   %-7s  %6s  %5s  %8s  %8s %8s %12s \n" $i $cc $m $n $js
+  printf "%-20s   %-7s  %6s  %5s  %8s  %8s %8s %12s \n" $i $cc $m $n $js >>../../.temp_job_monitor.txt
+
+ else
+#  -- check if job is in queue:
+  if [ "$e" == "PENDING" ]; 
+  then
+   n=$(scontrol show job $j |grep Account |awk '{print $2}')
+   printf "%-20s   %-7s  %6s  %5s  %8s  %8s %8s %12s \n"  $i $cc $m $n $js
+   printf "%-20s   %-7s  %6s  %5s  %8s  %8s %8s %12s \n"  $i $cc $m $n $js >>../../.temp_job_monitor.txt
+  else   
+# -- look for stalled jobs;  
+   if [ "$js" == "P:Running" ]; then 
+    js="P:Terminated?" 
+   fi
+   if [ "$js" == "O:Running" ]; then 
+    js="O:Terminated?" 
+   fi
+
+   if [ "$c" == "0" ];
+   then 
+    echo -e " $i  appears to be finished.   Job status: $js "    
+    echo -e " $i  appears to be finished.   Job status: $js " >>../../.temp_job_monitor.txt   
+   else 
+    
+    echo -e "$i: $cc -- job_id  $j does not appear to be running. Job staus: $js "
+    echo -e "$i: $cc -- job_id  $j does not appear to be running. Job staus: $js " >>../../.temp_job_monitor.txt     
+
+   fi
+  fi
+ fi   
+fi
+
+cd ../
+sleep 0.05
+done
+
+# -- move temp_job_monitor.txt to Analysis/Data/JobLog:-----------------------------------------
+cd ../
+
+echo -e "\n copying $date.job_monitor.txt to JobLog/" 
+mv .temp_job_monitor.txt JobLog/$date.job_monitor.txt
+
+else
+ echo -e "\n There appears to be no job directories in $DIR to monitor. \n" 
+ echo -e "\n There appears to be no job directories in $DIR to monitor. \n" >> .temp_job_monitor.txt 
+fi
+
+# -- cleanup:
+if [ -f .temp_showq.txt ]; 
+then 
+ rm .temp_showq.txt
+fi

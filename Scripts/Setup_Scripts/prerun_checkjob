@@ -1,0 +1,110 @@
+#!/bin/bash
+#                                                                 Mkuiper Jan 2013
+#
+# This script is designed to precheck your jobs given the input you have specified in 
+# the master_config_file to make sure varibles seem reasonable and that you have 
+# enough quota. 
+#---------------------------------
+
+source ../Scripts/common_functions.sh
+source ../Scripts/prerun_checkjob_functions.sh
+
+# check for master_config_file and source variables for both optimization 
+# and production scripts: 
+read_master_config_file .
+
+# Extract simulation values from configuration files:------------------------------------
+extract_input_files
+
+#  Extract job details: -------------------------
+extract_job_details
+
+#  Estimate file size:  
+estimate_job_size
+
+#  Check diskspace on current account - only works on avoca, merri or barcoo! 
+#check if we are on the system: 
+host=$(echo $HOSTNAME) 
+if [ $host = "avoca" ] || [ $host = "merri" ] || [ $host = "barcoo" ]; then
+ echo -e " on $host: " 
+  check_diskspace
+ else 
+ echo -e " not on system, can't check disk quota! "  
+fi
+
+# drop into JobTemplate to place directory at same level in relation to MainJob_dir to check paths. 
+
+cd JobTemplate
+#-- colours------------------------------------------------------------------------------------------------- 
+c1="\e[38;5;112m"
+c2="\e[38;5;110m"
+c3="\e[38;5;220m"
+c4="\e[38;5;180m"
+c5="\e[38;5;154m"
+c6="\e[38;5;190m"
+c7="\e[38;5;150m"
+c8="\e[38;5;46m"
+c9="\e[38;5;196m"
+c0="\e[39m"
+
+#--Print out summary:---------------------------------------------------------------------------------------
+ 
+echo -e "\n$c1 Job Precheck Summary:" 
+echo -e "$c1 -----------------------------------------------------------------------------------------------$c0" 
+printf  "$c2 Directory basename:$c0       %-12s\n" $BaseDirName 
+printf  "$c2 Optimize job basename:$c0    %-12s\n" $jobname_opt 
+printf  "$c2 Production job basename:$c0  %-12s\n" $jobname_prod 
+printf  "$c2 sbatch_start script:$c0      %-12s\t $c9 %s $c0\n" $sbatch_start      $sb_st  
+printf  "$c2 sbatch_production script:$c0 %-12s\t $c9 %s $c0\n" $sbatch_prod       $sb_pr
+printf  "$c2 Optimization script:$c0      %-12s\t $c9 %s $c0\n" $optimize_script   $op_sc  
+printf  "$c2 Production script:$c0        %-12s\t $c9 %s $c0\n" $production_script $pr_scr
+printf  "$c2 NAMD modulefile:$c0          %-48s\n" $modulefile 
+echo -e "$c1 -----------------------------------------------------------------------------------------------$c0" 
+
+printf  "$c7 Estimation of data to be generated from the production run of this simulation:$c0\n" 
+printf  "$c2 Job directories:$c0       %-12s\t$c2 Runs per directory:$c0 %-12s \n" $sims $runs 
+printf  "$c2 Steps per run:$c0         %-12s\t$c2 Dcdfreq in run:$c0     %-12s \n" $prod_steps $prod_dcd  
+printf  "$c2 Dcd frame size(MB):$c0    %-12.2f\t$c2 Total dcd frames:$c0   %-12s \n" $size_per_frame $frames 
+printf  "$c3 \tTotal simulated time:$c0      \t  %8.2f %s \n" $sim_time $time_units
+printf  "$c3 \tTotal production data size:$c0\t  %8.2f %s \n" $run_size $size
+echo -e "$c9 \t  $warning       $c0" 
+
+echo -e "$c1 -----------------------------------------------------------------------------------------------$c0" 
+printf   "$c7 SBATCH Parameters:$c5 \t$sbatch_start  \t\t$sbatch_prod $c0\n"
+printf   "$c2 nodes:   $c0          \t%-9s   \t\t\t%-9s \n" $nodes    $nodes 
+printf   "$c2 walltime:$c0          \t%-9s   \t\t\t%-9s \n" $walltime $walltime
+printf   "$c2 no. tasks per node:$c0\t%-9s   \t\t\t%-9s \n" $ntpn     $ntpn 
+printf   "$c2 processes per node:$c0\t%-9s   \t\t\t%-9s \n" $ppn      $ppn
+printf   "$c2 account:$c0           \t%-9s   \t\t\t%-9s \n" $account  $account  
+
+echo -e "$c1 -----------------------------------------------------------------------------------------------$c0" 
+
+# check InputFiles exist: 
+echo -e "$c7 Checking input and parameter files mentioned in config scripts exist: $c0 " 
+echo -e "$c5 $optimize_script: $c0"
+
+check_inputfiles $opt_input
+
+# check parameters: 
+for k in $opt_param
+do 
+ check_paramfiles $k
+done
+
+
+echo -e "$c5 $production_script: $c0"
+check_inputfiles $prod_input 
+
+# check parameter files. 
+for k in $prod_param
+do 
+ check_paramfiles $k
+done
+
+
+cd ../
+echo -e "$c1 -----------------------------------------------------------------------------------------------$c0" 
+
+printf "\n\n "  
+exit 
+

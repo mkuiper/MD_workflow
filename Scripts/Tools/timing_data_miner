@@ -1,0 +1,41 @@
+#! /bin/bash
+#								                 May 2012 Mkuiper
+# This script is used to extract timing details of a NAMD simulation and average the last 3 timing values. 
+
+# example calculation:
+# 1 fs /step   
+# [86400/ (t/3)] x1 / 1000000 ns/day   scale factor:  0.0864/(sec/step)
+ 
+# extract femtoseconds per step: 
+fs=$(less $1 |grep "Info: TIMESTEP" | awk '{print $3}');
+# extract NAMD version: 
+namdv=$(less $1 | grep "Info: NAMD" |awk '{print $2$3$4$5$6}'); 
+# extract cores used: 
+cores=$(less $1 | grep CPUs | tail -n1 |awk '{print $4}'); 
+
+# extract atoms in simulation: (line after "structure summary:"   
+natoms=$(less $1 | awk -F: '/STRUCTURE SUMMARY:/ && $0 != "" { getline; print $2 }');
+
+# extract seed number:
+seed=$(less $1 |grep "SEED" | awk '{print $5}');
+
+# extra-bits: 
+son=$(less $1 |grep "SWITCHING ON" | awk '{print $4}');
+sof=$(less $1 |grep "SWITCHING OFF" | awk '{print $4}');
+pli=$(less $1 |grep "PAIRLIST DISTANCE" | awk '{print $4}');
+switching="$son $sof $pli"; 
+
+pat=$(less $1 |grep "AWAY" | awk '{print $5, $7, $9}');
+lpa=$(less $1 |grep "LARGEST PATCH" | awk '{print $6}');
+mpa=$(less $1 |grep "MIN ATOMS" | awk '{print $6}');
+
+
+# Find average of last 3 timing steps  (seconds/step)  
+ss=$(grep "TIMING:"  $1  | tail -n3 | awk 'BEGIN{ FS="[ /]"}{t=t+$6}END{printf "\t%12.6f \n" ,(t/3)}');
+
+
+ting="$cores $fs $ss $namdv $seed $natoms "; 
+
+echo $ting |awk '{printf "%-5s\t%6.4f\t%8.3f ns/d\n", $1, $3, ((0.0864*$2)/$3) }';
+timing_extra=$(echo -e "Switching:$switching \t Patches:$pat \t largest patch: $lpa \t min atoms/patch: $mpa \t seed: $seed"); 
+

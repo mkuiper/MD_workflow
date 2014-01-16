@@ -1,0 +1,86 @@
+#!/bin/bash
+#                                                                  mk Jan 2013
+# Script to extract and colllate data from MainJob_dir  
+# -----------------------------------------------------------------------------
+# This will create loader files to read in sequential namd dcd runs 
+# with a single script.
+#
+
+
+#-- create a local version of a dcd_loader file: 
+combined="combined_dcd_loader_script"
+
+#-- make a temporary data directory: 
+if [ -d temp_data_dir ];
+then
+ rm -rf temp_data_dir
+fi
+mkdir temp_data_dir
+
+#-- write header to file: 
+echo "#!/usr/local/bin/vmd " >$combined.vmd
+echo "# VMD script written by save_state $Revision: 1.44 $" >>$combined.vmd
+echo "# VMD version: 1.9.1" >>$combined.vmd
+
+# -- Source master_config_file: -----------------------------------------------
+if [ -f ../Setup_and_Config/master_config_file ];
+then
+ . ../Setup_and_Config/master_config_file
+else
+ echo -e  "\nCan't see '../Setup_and_Config/master_config_file'.  Exiting! \n"   
+ exit
+fi
+
+# -- create basic vmd input setup file:
+echo "#!/usr/local/bin/vmd " >basic_vmd_setup.vmd
+echo "# VMD script written by save_state $Revision: 1.44 $" >>basic_vmd_setup.vmd
+echo "# VMD version: 1.9.1" >>basic_vmd_setup.vmd
+ 
+# -- grab input psf and pdb files to create a basic vmd setup file. 
+#  - assuming psf and pdb file reside in /InputFiles  (ignore change_me dummy files)
+psf_f=$( ls ../InputFiles/ | grep psf |grep -v change_me)   
+pdb_f=$( ls ../InputFiles/ | grep pdb |grep -v change_me) 
+
+echo "Date: `date`     " >> summary.txt
+echo "Input psf: $psf_f" >> summary.txt
+echo "Input pdb: $pdb_f" >> summary.txt
+
+printf "mol new ../InputFiles/%s type psf first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all\n" $psf_f >>basic_vmd_setup.vmd
+printf "mol addfile ../InputFiles/%s type pdb first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all\n" $pdb_f >>basic_vmd_setup.vmd 
+
+# change to main job directory: 
+DIR="MainJob_dir"
+cd ../
+
+# --Check for existing directories under /MainJob_dir and grab "official" directory list. 
+ 
+if [ "$(ls -A $DIR)" ]; then
+
+# source directory list. 
+y=$(cat .dir_list.txt) 
+
+cd $DIR
+
+for i in $y
+do
+# --Extract dcd file locations into /CollectiveData/dcd_job_loader_file.vmd
+ cd $i
+
+# grab directory name
+ echo -e " Extracting dcd file details in directory $DIR/$i \n "
+ ../../Scripts/Analysis_Scripts/create_dcd_loader_script 
+
+# merge files: 
+ cat OutputFiles/local_dcd_file_loader.vmd  >> ../../Analysis/$combined.vmd 
+ cd ../
+ 
+done
+fi
+
+echo -e " Extracted locations of dcd files from the /MainJob_dir in $combined.vmd" 
+echo -e " Setup files written to basic_vmd_setup.vmd " 
+echo -e " Make sure to check basic_vmd_setup.vmd is pointing to the right files! " 
+
+cd ../Analysis
+
+

@@ -1,0 +1,27 @@
+#!/bin/bash
+#                                                             Mkuiper Jan  2013
+# Simple script to create job directories. 
+# ( make changes to master_config.txt for making up to 1 to 99999 directories )
+#---------------------------------
+# load common functions:
+source ../Scripts/common_functions.sh
+
+# Check for master_config_file and source variables: 
+read_master_config_file .
+
+# Check if running in the /Setup_and_Config directory: 
+check_directory Setup_and_Config
+
+#---------------------------------------------------------
+cd ../
+
+# Check for existing job directories (usually in MainJob_dir) defined by $DIR 
+check_existing_job_directories 
+
+# Create new directories based on Template directory structure under Setup_and_Config/JobTemplate/
+create_new_job_directories
+
+cd Setup_and_Config
+
+exit
+

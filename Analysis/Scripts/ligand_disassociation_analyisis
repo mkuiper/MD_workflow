@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# This developmental script is designed to read each precalculated rmsd .dat file
+# (generated from the a6_ligand_disassociation.tcl script)  
+# and tally the rmsd of a ligand vs timepoint from many simulations. 
+# This is useful in observing disassociation events. 
+
+
+
+FILES=ligand_disassociation_data/*.dat
+cutoff=3.5
+
+# define an array for keeping track of results. : 
+declare -A array
+
+for f in $FILES
+do
+# -- open file: 
+while read LINE
+do 
+# -- extract data:
+a=$(echo $LINE | awk '{print $1;}' )
+b=$(echo $LINE | awk '{print $2;}' )
+
+# --awk-ward way:  using c as a flag 0/1 to represent whether ligand is 
+#  still within cutoff rmsd distance:  
+
+c=$(echo $b $cutoff | awk '{ if ($1 <= $2) print 1; else print 0 }')
+
+if [ $c -eq 1 ]; then 
+# -- update array: 
+ x=$(echo ${array[$a]} | awk '{print $1 +1}') 
+ array[$a]=$x 
+fi 
+
+done < $f  
+echo $f 
+done
+
+# -- write out tally to file: 
+echo "" > disassociation_data.txt
+
+l=${#array[@]}
+echo $l 
+
+for ((i=1; i<=l; i++))
+do
+ echo -e "$i \t ${array[$i]}" >> disassociation_data.txt
+ echo -e "$i \t ${array[$i]}"
+done
+
+

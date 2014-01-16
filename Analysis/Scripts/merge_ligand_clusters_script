@@ -1,0 +1,13 @@
+#! /bin/bash
+
+for (( q=0; q<$1; q++))
+do 
+
+ f="ligand_cluster_"$q".dcd"
+ Scripts/catdcd -o $f temp_data_dir/temp_ligand_cluster.$q.*
+ rm temp_data_dir/temp_ligand_cluster.$q.* 
+
+done 
+
+
+

@@ -1,0 +1,46 @@
+#!/bin/bash
+## Master config file for multiple jobs                             Jan 2013   MKuiper
+## (this file is typically sourced by other scripts.)   
+# --------------------------------------------------------------------------------------
+
+account=Change_me         # vlsci project account:  ( for example:  VR0123 )
+nodes=2                   # number of nodes to use:  ( must be a multiple of 2, or 1)  
+
+#ntpn=64                   # number tasks per node:  
+# ppn=8                     # Processors per node:  - redundant with pami version of namd
+
+walltime=24:0:0           # walltime: (Format: Hours:Minutes:Seconds for example: 24:0:0 )
+
+modulefile ="namd-intel\/2.9"
+
+#modulefile="namd-xl-pami\/2.9"        # module file  ("\" character helps with 'sed' lines) 
+#modulefile="namd-xl-pami-smp\/2.9"   # module file  ("\" character helps with 'sed' lines) 
+                                      # use 'module avail' on avoca to see modules
+# -- Job setup -------------------------------------------------------------------------
+sims=4        # -- Number of job directories to create.  Each replica simulation will spawn a new 
+              # job directory in /$DIR)  (can set to 1 for running single simulation) 
+runs=10       # Number of production runs to repeat in each directory:    
+
+# -- Default names of host job directory: (don't usually need to change this)  
+DIR="MainJob_dir"
+
+# -- Base name of the job directories and jobs:-----------------------------------------
+BaseDirName="My_Sim_"
+jobname_opt="opt_job_"
+jobname_prod="prod_job_"
+
+# -- Name of the sbatch and configuration scripts: (can change for custom scripts) 
+pbs_start="sbatch_start"
+optimize_script="sim_opt.conf"
+pbs_prod="sbatch_production"
+production_script="sim_production.conf"
+
+# -- Miscelaneous: (don't usually need to change this:) 
+
+jobfailtime=120;     # least number seconds of job time to assume failed job (default:120) 
+diskspacecutoff=96;  # % diskspace quota remaining before cancelling jobs 
+
+# ligand docking funnel: (Experimental)
+
+
+# --------------------------------------------------------------------------------------

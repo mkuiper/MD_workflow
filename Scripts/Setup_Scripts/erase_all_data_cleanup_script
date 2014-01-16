@@ -1,0 +1,86 @@
+#!/bin/bash
+##
+## Generic namd folder cleanup script                 MKuiper    Jan 2013
+##
+## Danger!! will erase all data in generic namd folder!	
+## 
+
+clear
+echo    "**  "
+echo    "**  This script will ERASE ALL DATA in this job folders:"
+echo    "**  "
+echo    "**    /MainJob_dir/*"
+echo    "**    /JobLog/*     "
+echo    "**    /Setup_and_Config/Benchmarking/"
+sleep 1
+
+read -p "**    Are you sure? (Y)" YYN
+
+#--------------------------------------------------------------
+if [ $YYN = "y" ]
+then 
+ echo -e "\n - Nothing erased. Use capital Y to proceed. " 
+ exit
+fi 
+
+if [ $YYN != "Y" ]
+then 
+ echo -e "\n - Nothing erased. \n  " 
+ exit
+fi 
+
+if [ $YYN = "Y" ];
+then
+ echo -e "\n - just to be clear, " 
+ echo -e " - ALL JOB DATA in this folder WILL BE ERASED \n"
+ echo -e " ../MainJob_dir/ "
+ echo -e " ../JobLog/ \n"
+
+ ls ../MainJob_dir/
+ echo -e "\n - ALL JOB DATA in this folder WILL BE ERASED \n"
+ sleep 2
+
+read -p "**   Type 'erase my data' to proceed with ERASING ALL YOUR DATA: " YN
+cdir=`pwd`
+y=`basename $cdir`
+
+# check if running in the /Setup_and_Config directory: 
+ if [ $y != "Setup_and_Config" ]
+ then
+   echo -e "\n You should really run this script from the /Setup_and_Config directory!\n"
+   echo -e "   Nothing erased.\n"
+   exit 
+ fi
+
+
+
+case $YN in
+
+["erase my data"]* ) echo -e "\n oh the humanity,...  I sure hope that wasn't something important.\n\n "
+
+ cd ../;
+
+# remove files and data:   
+ rm -rf MainJob_dir/*; 
+ rm -rf JobLog/*; 
+ rm -rf Setup_and_Config/Errors/*;  
+ rm -rf Setup_and_Config/OutputText/*;  
+ rm -rf Setup_and_Config/JobLog/*;  
+ rm -rf Setup_and_Config/ConfFiles/*;  
+ 
+if [ -f .dir_list.txt ]; 
+then 
+  rm  .dir_list.txt;
+fi  
+
+# reset some indicator files:   
+ echo "" > JobLog/Finished_job_list.txt;
+ echo "" > JobLog/Failed_job_list.txt;
+ echo "" > .dir_list.txt ;;
+
+
+* ) echo  "Phew! Nothing erased! ";;
+ 
+esac
+fi 
+

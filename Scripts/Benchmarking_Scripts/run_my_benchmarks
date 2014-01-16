@@ -1,0 +1,112 @@
+#!/bin/bash
+#                                                                 Mkuiper June 2012
+# This script sets up some benchmarking jobs 
+# based on your input files. 
+#---------------------------------
+# check for master_config_file and source variables for both optimization and production scripts: 
+source ../../Scripts/common_functions.sh
+
+check_directory Benchmarking
+
+read_master_config_file ../
+
+#  check for existence of inputfiles 
+if [ ! -f benchmarking_opt.coor ]; then
+ echo -e "\n Can't find inputfiles. Did sbatch_optimize_benchmark run properly?\n"
+ exit
+fi
+
+# read variables from sbatch file:---------------------------------------------------------------- 
+namdver=$( less ../master_config_file |grep modulefile | awk '{print $1}')
+
+# read variables from conf file:---------------------------------------------------------------- 
+cutoff=$( less bench_opt.conf |grep cutoff | awk '{print $2}' )
+switch=$( less bench_opt.conf |grep switchdist | awk '{print $2}' )
+pairli=$( less bench_opt.conf |grep pairlistdist | awk '{print $2}' )
+timest=$( less bench_opt.conf |grep timestep |tail -n 1 | awk '{print $2}' )
+nbfreq=$( less bench_opt.conf |grep nonbondedFreq | awk '{print $2}' )
+fEfreq=$( less bench_opt.conf |grep fullElectFrequency | awk '{print $2}' )
+stepcy=$( less bench_opt.conf |grep stepspercycle | awk '{print $2}' )
+
+# combine cutoff list:  
+opt_cutoff=$( echo "$cutoff\t$switch\t$pairli" )
+opt_timest=$( echo "$timest\t$nbfreq\t$fEfreq\t$stepcy " )
+
+# read variables from conf file: ---------------------------------------------------------------
+cutoff=$( less benchmark.conf |grep cutoff | awk '{print $2}' )
+switch=$( less benchmark.conf |grep switchdist| awk '{print $2}' )
+pairli=$( less benchmark.conf |grep pairlistdist | awk '{print $2}' )
+timest=$( less benchmark.conf |grep timestep |tail -n 1 | awk '{print $2}' )
+nbfreq=$( less benchmark.conf |grep nonbondedFreq | awk '{print $2}' )
+fEfreq=$( less benchmark.conf |grep fullElectFrequency | awk '{print $2}' )
+stepcy=$( less benchmark.conf |grep stepspercycle | awk '{print $2}' )
+
+# combine cutoff list:  
+bench_cutoff=$( echo "$cutoff\t$switch\t$pairli" )
+bench_timest=$( echo "$timest\t$nbfreq\t$fEfreq\t$stepcy " )
+
+
+psf_file=$( less ../$optimize_script |grep structure   | awk '{print $2}' )
+natoms=$( less $psf_file | grep ATOM |awk '{print $1}')
+
+date=$( date )
+echo -e "\nBenchmarking: $date \n" >> summary_benchmarks.txt
+echo -e "Namd version: $namdver\n " >> summary_benchmarks.txt
+echo -e "\t\tcutoff\tswitch\tpairlist" >> summary_benchmarks.txt
+echo -e "optimize:\t$opt_cutoff " >> summary_benchmarks.txt
+echo -e "production:\t$bench_cutoff \n" >> summary_benchmarks.txt
+echo -e "timing freq:\tstep\tnonB\tfullE\tcycle" >> summary_benchmarks.txt
+echo -e "optimize:\t$opt_timest " >> summary_benchmarks.txt
+echo -e "production:\t$bench_timest \n" >> summary_benchmarks.txt
+echo -e "no of atoms:\t$natoms \n" >> summary_benchmarks.txt
+
+echo -e "     \ttasks\t   \t     \tseconds\tnanoseconds" >> summary_benchmarks.txt
+echo -e "nodes\t/node\tppn\tcores\t /step \t  per day  " >> summary_benchmarks.txt
+        "%5s  \t%5.4f s/step%7.4f ns/day\t seed:%s \n", $3, $2, ((0.0864*$1)/$2), $5 }
+
+
+
+# adjust nodelist to try depending on size of simulation:------------
+nodelist="8 4 2 1" 
+if [ "$natoms" -gt "100000" ];then 
+ nodelist="16 8 4 2 1"
+fi
+if [ "$natoms" -gt "500000" ];then 
+ nodelist="64 32 16 8 4 2" 
+fi
+if [ "$natoms" -gt "1000000" ];then 
+ nodelist="256 128 64 32 16 8 4 "
+fi
+
+
+# range of nodes to try:------------------------------------
+for node in $nodelist 
+do
+# number of tasks per node.  (ntpn x ppn must equal 64) 
+# don't change this:
+ for ntpn in 64 32 16 8 4 2 1 
+ do
+  n="n"
+  t="t"
+  name=$n$node$t$ntpn 
+  let ppn=64/$ntpn
+
+# write custom sbatch_file
+cat sbatch_template > sb_bench.$name 
+sed -i  's/#SBATCH --nodes=X/#SBATCH --nodes='"$node"'/' sb_bench.$name 
+sed -i  's/nodes=X/nodes='"$node"'/' sb_bench.$name 
+sed -i  's/ntpn=X/ntpn='"$ntpn"'/'  sb_bench.$name 
+sed -i  's/ppn=X/ppn='"$ppn"'/'  sb_bench.$name 
+sed -i  's/#SBATCH --account=X/#SBATCH --account='"$account"'/'  sb_bench.$name 
+sed -i  's/module load X/module load '"$modulefile"'/'  sb_bench.$name 
+sed -i  's/jobname=X/jobname=bench_'"$name"'/'  sb_bench.$name 
+
+# -----------------------------------------------------------
+sbatch sb_bench.$name 
+
+sleep 2 
+#------------------------------------------------------------
+
+done
+done
+
