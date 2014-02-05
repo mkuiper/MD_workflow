@@ -62,8 +62,6 @@ echo -e "no of atoms:\t$natoms \n" >> summary_benchmarks.txt
 
 echo -e "     \ttasks\t   \t     \tseconds\tnanoseconds" >> summary_benchmarks.txt
 echo -e "nodes\t/node\tppn\tcores\t /step \t  per day  " >> summary_benchmarks.txt
-        "%5s  \t%5.4f s/step%7.4f ns/day\t seed:%s \n", $3, $2, ((0.0864*$1)/$2), $5 }
-
 
 
 # adjust nodelist to try depending on size of simulation:------------
