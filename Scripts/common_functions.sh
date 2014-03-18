@@ -377,7 +377,7 @@ then
 
 # -- create a dcd file loader .vmd file in /OutputFiles 
  cd OutputFiles
-  ../../../Scripts/Tools/create_dcd_loader_script
+  ./create_dcd_loader_script
  cd ../
 
 ## -- log finished job details to ../../JobLog/Finished_job_list.txt
