@@ -100,27 +100,27 @@ echo -e  "Creating new job directories: \n"
 while [ $sims -gt 0 ];
  do
   if [ $sims -lt 10 ]; then
-    cp -r Setup_and_Config/JobTemplate MainJob_dir/$BaseDirName.000$sims
+    cp -r Setup_and_Config/JobTemplate $JOB_DIR/$BaseDirName.000$sims
     echo "Creating directory: $BaseDirName.000$sims"
-    echo $BaseDirName.00$sims >> MainJob_dir/$BaseDirName.000$sims/.jobdir_id
+    echo $BaseDirName.00$sims >> $JOB_DIR/$BaseDirName.000$sims/.jobdir_id
   fi
 
   if [ $sims -gt 9 -a $sims -lt 100 ]; then
-    cp -r Setup_and_Config/JobTemplate MainJob_dir/$BaseDirName.00$sims
+    cp -r Setup_and_Config/JobTemplate $JOB_DIR/$BaseDirName.00$sims
     echo "Creating directory: $BaseDirName.00$sims"
-    echo $BaseDirName.0$sims >> MainJob_dir/$BaseDirName.00$sims/.jobdir_id
+    echo $BaseDirName.0$sims >> $JOB_DIR/$BaseDirName.00$sims/.jobdir_id
   fi
 
   if [ $sims -gt 99 -a $sims -lt 1000 ]; then
-    cp -r Setup_and_Config/JobTemplate MainJob_dir/$BaseDirName.0$sims
+    cp -r Setup_and_Config/JobTemplate $JOB_DIR/$BaseDirName.0$sims
     echo "Creating directory: $BaseDirName.0$sims"
-    echo $BaseDirName.$sims >> MainJob_dir/$BaseDirName.0$sims/.jobdir_id
+    echo $BaseDirName.$sims >> $JOB_DIR/$BaseDirName.0$sims/.jobdir_id
   fi
 
   if [ $sims -gt 999 -a $sims -lt 10000 ]; then
-    cp -r Setup_and_Config/JobTemplate MainJob_dir/$BaseDirName.$sims
+    cp -r Setup_and_Config/JobTemplate $JOB_DIR/$BaseDirName.$sims
     echo "Creating directory: $BaseDirName.$sims"
-    echo $BaseDirName.$sims >> MainJob_dir/$BaseDirName.$sims/.jobdir_id
+    echo $BaseDirName.$sims >> $JOB_DIR/$BaseDirName.$sims/.jobdir_id
   fi
 
 let sims=sims-1
@@ -128,7 +128,7 @@ done
 echo -e "\n done creating directories!  \n"
 
 # Make a hidden list of the job_directory 
-ls MainJob_dir/ > .dir_list.txt
+ls $JOB_DIR/ > .dir_list.txt
 
 # Remind user to populate new job directories: 
 echo -e "\n\n Don't forget to populate your Job directories with your sbatch and config files! \n " 
@@ -147,7 +147,7 @@ if [ -f $fpath/.dir_list.txt ]; then
  else
   echo -e  "\n $JOB_DIR appears empty! No .dir_list.txt file. " 
   echo -e  "\n Nothing to do here.  have you run ./create_job_directories yet? "
-  echo -e  "\n or try: 'ls /MainJob_dir/ > .dir_list.txt'  \n Exiting! " 
+  echo -e  "\n or try: 'ls /$JOB_DIR/ > .dir_list.txt'  \n Exiting! " 
   exit
 fi
 }

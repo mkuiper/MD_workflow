@@ -1,6 +1,9 @@
 #!/bin/bash
-#                                                                  mk Jan 2013
-# Script to extract and colllate data from MainJob_dir  
+#                                                                  mk Jan 2014
+# Script to extract last frames of job directories for a quick view.   
+
+###      not complete!!!
+
 # -----------------------------------------------------------------------------
 # This will create loader files to read in sequential namd dcd runs 
 # with a single script.
@@ -8,7 +11,7 @@
 source ../Scripts/common_functions.sh
 
 #-- create a local version of a dcd_loader file: 
-combined="combined_dcd_loader_script"
+combined="quickview_loader_script"
 
 #-- make a temporary data directory: 
 if [ -d temp_data_dir ];
@@ -25,26 +28,7 @@ echo "# VMD version: 1.9.1" >>$combined.vmd
 # -- Source master_config_file: -----------------------------------------------
 read_master_config_file ../Setup_and_Config
 
-
-# -- create basic vmd input setup file:
-echo "#!/usr/local/bin/vmd " >basic_vmd_setup.vmd
-echo "# VMD script written by save_state $Revision: 1.44 $" >>basic_vmd_setup.vmd
-echo "# VMD version: 1.9.1" >>basic_vmd_setup.vmd
  
-# -- grab input psf and pdb files to create a basic vmd setup file. 
-# -- assuming psf and pdb file reside in /InputFiles  (ignore change_me dummy files)
-# -- prone to error -must check resultant setup file. 
-
-psf_f=$( ls ../InputFiles/ | grep psf |grep -v change_me)   
-pdb_f=$( ls ../InputFiles/ | grep pdb |grep -v change_me) 
-
-echo "Date: `date`     " >> summary.txt
-echo "Input psf: $psf_f" >> summary.txt
-echo "Input pdb: $pdb_f" >> summary.txt
-
-printf "mol new ../InputFiles/%s type psf first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all\n" $psf_f >>basic_vmd_setup.vmd
-printf "mol addfile ../InputFiles/%s type pdb first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all\n" $pdb_f >>basic_vmd_setup.vmd 
-
 # change to main job directory: 
 cd ../
 
@@ -63,7 +47,7 @@ do
  cd $i
 
 # grab directory name
- echo -e " Extracting dcd file details in directory $JOB_DIR/$i \n "
+ echo -e " Extracting coor file details in directory $JOB_DIR/$i \n "
  ../../Scripts/Analysis_Scripts/create_dcd_loader_script 
 
 # merge files: 
