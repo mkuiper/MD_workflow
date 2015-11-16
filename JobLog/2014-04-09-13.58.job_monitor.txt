@@ -1,0 +1,6 @@
+
+ Monitoring Jobs status of all sims running in MainJob_dir:  running on AVOCA 
+ Date: 2014-04-09-13.58 
+
+ DirJobName:    	Count 	JobId 	Cores 	Status 	 Walltime   Account   Job_status 
+-----------------------------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 #-----------------------------------------------------------------------------#
 # Namd project job directory notes.  (v0.4)   	   Jan 2014  MKuiper VLSCI    #
 #-----------------------------------------------------------------------------#
-
+#xx 
 # Disclaimer! - I have made this workflow originally to help manage my own 
  projects, - you are free to use it, but it may not be entirely suitable for 
  what you are trying to achieve. Please email feedback, bugs or suggestions to:
